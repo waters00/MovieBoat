@@ -1,106 +1,40 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ user.username }}--用户中心{% endblock %}
-
-{% block scripts %}
-    {{ super() }}
-    {{ moment.include_moment() }}
-    {{ moment.lang('zh_CN') }}
-{% endblock %}
+{% block title %}{{ user.username }} - 用户中心{% endblock %}
 
 {% block content %}
-
-
-
-    <!--the main content begin-->
-    <div class="container">
-        <!--the content-->
-        <div class="ui grid">
-            <div class="two wide column"></div>
-            <!--the vertical menu-->
-            <div class="four wide column">
-                <div class="verticalMenu">
-                    <div class="ui vertical pointing menu fluid">
-                        <a class="active teal item" href="/user/profile">
-                            <i class="edit icon"></i>账户设置
-                        </a>
-                        <a class="item" href="/user/consume_history">
-                            <i class="history icon"></i>消费历史
-                        </a>
-                        <a class="item" href="/user/change_password">
-                            <i class="lock icon"></i> 修改密码
-                        </a>
-                        <a class="item" href="/user/charge">
-                            <i class="yen icon"></i>充值
-                        </a>
-                        <a class="item" href="/user/message">
-                            <i class="chat icon"></i> 消息
-                        </a>
+    <section class="row g-4">
+        <div class="col-lg-3">
+            {% set active_page = 'profile' %}
+            {% include '_user_sidebar.html' %}
+        </div>
+        <div class="col-lg-9">
+            <div class="card page-card p-4">
+                <h3 class="h5 mb-3">账户设置</h3>
+                <form action="/user/profile" method="POST">
+                    <div class="mb-3">
+                        <img
+                            src="{{ user.avatar }}"
+                            data-fallback="{{ url_for('static', filename='img/avatar_placeholder.svg') }}"
+                            class="avatar-md"
+                            alt="{{ user.username }}">
                     </div>
-                </div>
-            </div>
-            <div class="twelve wide column">
-                <div class="pageHeader">
-                    <div class="segment">
-                        <h3 class="ui dividing header">
-                            <i class="large edit icon"></i>
-                            <div class="content">
-                                账户设置
-                                <div class="sub header">您的个人账户信息</div>
-                            </div>
-                        </h3>
+                    <div class="mb-3">
+                        <label for="username" class="form-label">用户名</label>
+                        <input type="text" id="username" name="username" value="{{ user.username }}" class="form-control">
                     </div>
-                </div>
-                <!--the user_profile form-->
-                <div class="ui form vertical segment">
-                    <img src="{{ user.avatar }}">
-                    <form action="/user/profile" method="POST">
-                        <div class="two fields">
-                            <div class="field">
-                                <label>用户名</label>
-                                <div class="ui left labeled icon input">
-                                    <input type="text" id="username" name="username" value="{{ user.username }}">
-                                    <i class="user icon"></i>
-                                    <div class="ui corner label">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="two fields">
-                            <div class="field">
-                                <label>手机号码</label>
-                                <div class="ui left labeled icon input">
-                                    <input type="text" id="phone_number" name="phone_number"
-                                           value="{{ user.phone_number }}">
-                                    <i class="mail icon"></i>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="two fields">
-                            <div class="field">
-                                <label>余额</label>
-
-                                    <span style="font-size: 2em"> ￥ </span>
-                                    <span style="color: red;font-size: 2em;">
-                                        {{ user.balance }}
-                                    </span>
-                            </div>
-                        </div>
-
-                        <input class="ui small blue submit button" type="submit" value="保存">
-                        <input class="ui small basic button" type="reset" value="取消">
-                    </form>
-                </div>
+                    <div class="mb-3">
+                        <label for="phone_number" class="form-label">手机号码</label>
+                        <input type="text" id="phone_number" name="phone_number" value="{{ user.phone_number }}" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">余额</label>
+                        <p class="fs-4 text-danger mb-0">￥{{ user.balance }}</p>
+                    </div>
+                    <button class="btn btn-primary" type="submit">保存</button>
+                    <button class="btn btn-outline-secondary" type="reset">取消</button>
+                </form>
             </div>
         </div>
-    </div>
-    </div>
-
-    <script>
-        $('.ui.dropdown')
-            .dropdown();
-    </script>
-
-
+    </section>
 {% endblock %}

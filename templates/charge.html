@@ -1,105 +1,46 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ user.username }}--用户中心{% endblock %}
-
-{% block scripts %}
-    {{ super() }}
-    {{ moment.include_moment() }}
-    {{ moment.lang('zh_CN') }}
-{% endblock %}
+{% block title %}{{ user.username }} - 用户中心{% endblock %}
 
 {% block content %}
-
-
-
-    <!--the main content begin-->
-    <div class="container">
-        <!--the content-->
-        <div class="ui grid">
-            <div class="two wide column"></div>
-            <!--the vertical menu-->
-            <div class="four wide column">
-                <div class="verticalMenu">
-                    <div class="ui vertical pointing menu fluid">
-                        <a class="item" href="/user/profile">
-                            <i class="edit icon"></i>账户设置
-                        </a>
-                        <a class="item" href="/user/consume_history">
-                            <i class="history icon"></i>消费历史
-                        </a>
-                        <a class="item" href="/user/change_password">
-                            <i class="lock icon"></i> 修改密码
-                        </a>
-                        <a class="active teal item" href="/user/charge">
-                            <i class="yen icon"></i>充值
-                        </a>
-                        <a class="item" href="/user/message">
-                            <i class="chat icon"></i> 消息
-                        </a>
+    <section class="row g-4">
+        <div class="col-lg-3">
+            {% set active_page = 'charge' %}
+            {% include '_user_sidebar.html' %}
+        </div>
+        <div class="col-lg-9">
+            <div class="card page-card p-4">
+                <h3 class="h5 mb-3">账户充值</h3>
+                <p class="text-secondary">请选择充值金额</p>
+                <form action="/user/charge" method="POST">
+                    <div class="btn-group mb-3" role="group" id="chargeGroup">
+                        <button class="btn btn-outline-danger charge-btn active" type="button" data-value="5">￥5</button>
+                        <button class="btn btn-outline-danger charge-btn" type="button" data-value="10">￥10</button>
+                        <button class="btn btn-outline-danger charge-btn" type="button" data-value="20">￥20</button>
+                        <button class="btn btn-outline-danger charge-btn" type="button" data-value="100">￥100</button>
                     </div>
-                </div>
-            </div>
-            <div class="twelve wide column">
-                <div class="pageHeader">
-                    <div class="segment">
-                        <h3 class="ui dividing header">
-                            <i class="large yen icon"></i>
-                            <div class="content">
-                                充值
-                                <div class="sub header">请选择要充值的金额</div>
-                            </div>
-                        </h3>
+                    <input id="chargeAmount" type="hidden" name="charge_amount" value="5">
+                    <div>
+                        <button class="btn btn-primary" type="submit">充值</button>
+                        <button class="btn btn-outline-secondary" type="reset">取消</button>
                     </div>
-                </div>
-                <!--the user_profile form-->
-                <div class="ui form vertical segment">
-                    <form action="/user/charge" method="POST">
-                        <div class="field">
-                            <div id="5_yuan" class="ui negative basic button">
-                                <label>￥5</label>
-                            </div>
-                            <div id="10_yuan" class="ui basic button">
-                                <label>￥10</label>
-                            </div>
-                            <div id="20_yuan" class="ui basic button">
-                                <label>￥20</label>
-                            </div>
-                            <div id="100_yuan" class="ui basic button">
-                                <label>￥100</label>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <input id="charge_amount" hidden name="charge_amount" value="5">
-                        </div>
-                        <input class="ui small blue submit button" type="submit" value="充值">
-                        <input class="ui small basic button" type="reset" value="取消">
-                    </form>
-                </div>
+                </form>
             </div>
         </div>
-    </div>
-    </div>
+    </section>
+{% endblock %}
 
+{% block extra_scripts %}
     <script>
-        $('.ui.dropdown')
-            .dropdown();
-
-        var charge_amount = 5;
-
-        $('.ui.basic.button').click(
-            function () {
-                $('#5_yuan').attr('class', 'ui basic button');
-                $('#10_yuan').attr('class', 'ui basic button');
-                $('#20_yuan').attr('class', 'ui basic button');
-                $('#100_yuan').attr('class', 'ui basic button');
-                $(this).attr('class', 'ui negative basic button');
-                charge_amount = $(this).attr("id").split('_')[0];
-                $('#charge_amount').val(charge_amount);
-            }
-        )
-
-
+        (function () {
+            const hidden = document.getElementById('chargeAmount');
+            document.querySelectorAll('.charge-btn').forEach((btn) => {
+                btn.addEventListener('click', function () {
+                    document.querySelectorAll('.charge-btn').forEach((x) => x.classList.remove('active'));
+                    this.classList.add('active');
+                    hidden.value = this.dataset.value;
+                });
+            });
+        }());
     </script>
-
-
 {% endblock %}

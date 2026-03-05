@@ -2,247 +2,158 @@
 
 {% block title %}电影船{% endblock %}
 
-
 {% block content %}
-
-    <style>
-        .column {
-            margin-bottom: 100px;
-        }
-
-        .grid {
-            margin-bottom: 100px;
-        }
-
-        .tiny-title {
-            color: #8e6560 !important;
-            display: block;
-            font-size: large;
-            margin-bottom: .9em;
-        }
-
-
-    </style>
-
-    <div class="ui container center aligned" style="margin-bottom: 200px;">
-        <a class="header item center aligned" href="/">
-            <img class="logo" src="../static/favicon.ico">
-        </a>
-        <div class="ui search">
-            <form class="ui form" action="/search" method="GET">
-                <h1 class="ui header">电影船是一个在线付费视频的网站</h1>
-                <div class="ui field fluid huge action input">
-                    <input type="text" name="keyword" placeholder="请输入电影、电视剧、纪录片名">
-                    <input type="text" name="page" value="1" hidden>
-                    <button type="submit" value="search" class="ui huge secondary submit button">搜索</button>
-                </div>
-            </form>
-        </div>
+    <section class="p-4 p-md-5 mb-4 rounded-4 bg-white page-card text-center">
+        <img src="{{ url_for('static', filename='img/favicon.svg') }}" alt="MovieBoat logo" width="56" height="56" class="mb-3">
+        <h1 class="h3 mb-3">电影船是一个在线付费视频网站</h1>
+        <form class="row g-2 justify-content-center" action="/search" method="GET">
+            <div class="col-12 col-md-7">
+                <input type="text" class="form-control form-control-lg" name="keyword" placeholder="请输入电影、电视剧、纪录片名">
+                <input type="hidden" name="page" value="1">
+            </div>
+            <div class="col-12 col-md-auto">
+                <button type="submit" class="btn btn-primary btn-lg w-100">搜索</button>
+            </div>
+        </form>
         {% if keyword %}
-            <div class="ui container" style="margin-bottom: ">
-                <div class="ui info message">
-                    <div class="header">
-                        <p>以下是搜索关键词<span style="color:red">{{ keyword }}</span>得到的结果</p>
-                        <p>共有<span style="color:red">{{ movies.__len__() }}</span>条记录</p>
-                    </div>
-                </div>
+            <div class="alert alert-info mt-4 mb-0">
+                关键词 <strong>{{ keyword }}</strong> 的当前页结果共 <strong>{{ movies.__len__() }}</strong> 条
             </div>
         {% endif %}
+    </section>
 
-
-    </div>
-
-
-
-    <div class="ui centered grid">
-        {% for i in range(2) %}
-            <div class="two wide column">
-            </div>
-            {% for movie in movies[i*4:i*4 + 4] %}
-                <div class="three wide column">
-                    <div class="ui card">
-                        <a class="image" href="/movie/{{ movie.brief_id }}">
-                            <img src="{{ movie.cover }}">
-                        </a>
-                        <div class="content">
-                            <a class="header" href="/movie/{{ movie.brief_id }}"><h3>{{ movie.title }}</h3></a>
-                            <div id="info_{{ movie.brief_id }}" class="four wide column" hidden>
-                                <span style="font-size: 2em;font-weight: 700;color:#be997f;display: block;margin-bottom: .5em">{{ movie.title }}</span>
-
-                                {% for item in movie.info.split('\n')[0:-2] %}
-                                    <span class="tiny-title">{{ item }}</span>
-                                {% endfor %}
-                                <div class="ui horizontal divider">
-                                </div>
-                                <div class="extra content">
-                                    <span style="font-size: 3em">
-                                    ￥
-                                    </span>
-
-                                    <span style="color: red;font-size: 4em;">
-                                        {{ movie.movie_price.first().price }}
-                                    </span>
-                                </div>
-
-                            </div>
-                        </div>
-                        <div class="extra content">
-                            ￥
-                            <span style="color: red;">
-                                        {{ movie.movie_price.first().price }}
-                                </span>
-                        </div>
+    <section class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-4">
+        {% for movie in movies %}
+            <div class="col">
+                <div class="card h-100 page-card">
+                    <a href="/movie/{{ movie.brief_id }}">
+                        <img
+                            src="{{ movie.cover }}"
+                            data-fallback="{{ url_for('static', filename='img/movie_placeholder.svg') }}"
+                            class="card-img-top movie-cover"
+                            alt="{{ movie.title }}">
+                    </a>
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">{{ movie.title }}</h5>
+                        <p class="text-muted small mb-3">{{ movie.info.split('\n')[0] if movie.info else '暂无影片信息' }}</p>
+                        <p class="mb-3">价格：<span class="text-danger fw-semibold">￥{{ movie.movie_price.first().price }}</span></p>
+                        {% if movie.can_watched %}
+                            <a href="/watch/{{ movie.brief_id }}" class="btn btn-primary mt-auto">观看视频</a>
+                        {% else %}
+                            <button
+                                class="btn btn-outline-danger mt-auto purchase-btn"
+                                data-id="consume_{{ movie.brief_id }}"
+                                data-title="{{ movie.title }}"
+                                data-cover="{{ movie.cover }}"
+                                data-price="{{ movie.movie_price.first().price }}"
+                                data-info="{{ movie.info }}">
+                                点击购买
+                            </button>
+                        {% endif %}
                     </div>
-                    {% if movie.can_watched %}
-                        <button id="watch" class="ui blue button large" value="/watch/{{ movie.brief_id }}">
-                            <i class="video play icon"></i>
-                            观看视频
-                        </button>
-                    {% else %}
-                        <button id="consume_{{ movie.brief_id }}" class="ui button negative large">
-                            <i class="video play icon"></i>
-                            点击购买
-                        </button>
-                    {% endif %}
                 </div>
-            {% endfor %}
+            </div>
         {% endfor %}
+    </section>
 
-        <div class="ui container">
-            <div class="ui pagination big menu right floated">
+    <nav class="mt-4" aria-label="分页">
+        <ul class="pagination justify-content-center">
+            {% if pagination.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ current_path }}page={{ current_page-1 }}">上一页</a>
+                </li>
+            {% endif %}
 
-                {% if pagination.has_prev %}
-                    <a class="icon item" href="{{ current_path }}page={{ current_page-1 }}">
-                        <i class="icon left arrow"></i>
-                    </a>
+            {% for page in pagination.iter_pages() %}
+                {% if not page %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% else %}
+                    <li class="page-item {% if page == current_page %}active{% endif %}">
+                        <a class="page-link" href="{{ current_path }}page={{ page }}">{{ page }}</a>
+                    </li>
                 {% endif %}
+            {% endfor %}
 
-                {% for page in pagination.iter_pages() %}
+            {% if pagination.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ current_path }}page={{ current_page+1 }}">下一页</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
 
-                    {% if not page %}
-                        <a class="item">
-                            ...
-                        </a>
-                    {% else %}
-                        <a class="item" href="{{ current_path }}page={{ page }}">
-                            {{ page }}
-                        </a>
-                    {% endif %}
-
-                {% endfor %}
-
-
-                {% if pagination.has_next %}
-                    <a class="icon item" href="{{ current_path }}page={{ current_page+1 }}">
-                        <i class="icon right arrow"></i>
-                    </a>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-
-
-
-    <div id="consume_modal" class="ui modal" style="width: 700px">
-        <i class="close icon"></i>
-        <div class="header">
-            确认购买
-        </div>
-        <div class="content" style="margin-bottom: -80px">
-            <div class="container">
-                <div class="ui grid">
-                    <div class="two column row">
-                        <div class="column">
-                            <img id="consume_img" src="">
+    <div class="modal fade" id="consumeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">确认购买</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="consumeAlert" class="alert alert-danger d-none"></div>
+                    <div class="row g-3">
+                        <div class="col-md-5">
+                            <img id="consumeImg" class="img-fluid rounded"
+                                 data-fallback="{{ url_for('static', filename='img/movie_placeholder.svg') }}"
+                                 src="{{ url_for('static', filename='img/movie_placeholder.svg') }}"
+                                 alt="movie cover">
                         </div>
-                        <div id="consume_content" class="column">
+                        <div class="col-md-7">
+                            <h4 id="consumeTitle"></h4>
+                            <p id="consumeInfo" class="text-secondary mb-2"></p>
+                            <p class="mb-0">应付金额：<span id="consumePrice" class="text-danger fw-bold"></span></p>
                         </div>
                     </div>
                 </div>
+                <div class="modal-footer">
+                    <button id="confirmConsume" type="button" class="btn btn-danger">确认购买</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                </div>
             </div>
         </div>
-
-        <div class="ui container right aligned">
-            <div id="confirm_consume" class="ui negative right button" onsubmit="return false;">确认购买</div>
-            <div id="cancel_consume" class="ui button">取消</div>
-        </div>
-
-
-        <div class="ui error message" hidden>
-            <ul class="list">
-                <li></li>
-            </ul>
-        </div>
     </div>
+{% endblock %}
 
-
+{% block extra_scripts %}
     <script>
-        $('#watch').click(
-            function () {
-                window.location = $(this)[0].value;
-            }
-        )
-        var movie_brief_id = $(this).attr("id");
-        $('.button.negative.large').click(
-            function () {
-                $('.error.message').hide()
-                movie_brief_id = $(this).attr("id");
+        (function () {
+            const consumeModalEl = document.getElementById('consumeModal');
+            const consumeModal = new bootstrap.Modal(consumeModalEl);
+            const consumeAlert = document.getElementById('consumeAlert');
+            const consumeImg = document.getElementById('consumeImg');
+            const consumeTitle = document.getElementById('consumeTitle');
+            const consumeInfo = document.getElementById('consumeInfo');
+            const consumePrice = document.getElementById('consumePrice');
+            const confirmConsume = document.getElementById('confirmConsume');
+            let movieBriefId = '';
 
-                var item_src = $(this).parent()[0].getElementsByTagName('img')[0].src;
-                var item_info = $(this).parent()[0].getElementsByClassName('four wide column')[0];
+            document.querySelectorAll('.purchase-btn').forEach((btn) => {
+                btn.addEventListener('click', function () {
+                    movieBriefId = this.dataset.id;
+                    consumeAlert.classList.add('d-none');
+                    consumeAlert.textContent = '';
+                    consumeTitle.textContent = this.dataset.title || '';
+                    consumeInfo.textContent = (this.dataset.info || '').split('\n').slice(0, 2).join(' / ');
+                    consumePrice.textContent = `￥${this.dataset.price}`;
+                    consumeImg.src = this.dataset.cover || consumeImg.dataset.fallback;
+                    consumeModal.show();
+                });
+            });
 
-
-                $('#consume_img').attr('src', item_src);
-                $('#consume_content').html(item_info.innerHTML);
-                $('#consume_modal').modal('show');
-            }
-        )
-
-        $('#confirm_consume').click(
-            function () {
-
-                function deal_response(response) {
-                    switch (response['code']) {
-                        case 300:
-                            alert('购买成功！即将跳转到播放页面')
-                            $('li').text(
-                                response['message']
-                            )
-                            $('.error.message').show()
-                            window.location = '/watch/' + movie_brief_id.split('_')[1]
-
-                            break;
-                        case 301:
-                            $('li').text(
-                                response['message']
-                            )
-                            $('.error.message').show()
-                            break
-                        case 302:
-                            $('li').text(
-                                response['message']
-                            )
-                            $('.error.message').show()
-                            break
-                    }
+            confirmConsume.addEventListener('click', async function () {
+                const response = await fetch('/consume', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'},
+                    body: new URLSearchParams({movie_brief_id: movieBriefId}),
+                });
+                const result = await response.json();
+                if (result.code === 300) {
+                    window.location = `/watch/${movieBriefId.split('_')[1]}`;
+                    return;
                 }
-
-                $.ajax({
-                        type: 'POST',
-                        url: '/consume',
-                        data: {movie_brief_id: movie_brief_id},
-                        success: deal_response,
-                    }
-                )
-            }
-        )
-
-        $('#cancel_consume').click(
-            function () {
-                $('#consume_modal').modal('hide')
-            }
-        )
+                consumeAlert.textContent = result.message || '购买失败';
+                consumeAlert.classList.remove('d-none');
+            });
+        }());
     </script>
-
 {% endblock %}

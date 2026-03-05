@@ -1,346 +1,203 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <link rel="icon" href="../static/favicon.ico">
-
-    <title>{% block title %}{% endblock %}</title>
-
-    {% block scripts %}
-        <script src="http://upcdn.b0.upaiyun.com/libs/jquery/jquery-2.0.2.min.js"></script>
-        <link rel="stylesheet" type="text/css" href="../static/semantic/dist/semantic.min.css">
-        <script src="../static/semantic/dist/semantic.min.js"></script>
-    {% endblock %}
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/favicon.svg') }}">
+    <title>{% block title %}电影船{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+    {% block scripts %}{% endblock %}
 </head>
-
-<body style="background-color: whitesmoke">
-
-<style type="text/css">
-    body {
-        background-color: #DADADA;
-    }
-
-    body > .grid {
-        height: 100%;
-    }
-
-    .image {
-        margin-top: -100px;
-    }
-
-    .column {
-        max-width: 450px;
-        max-width: 600px;
-    }
-
-    .myColumn {
-        width: 200px;
-    }
-
-</style>
-
-
-<div class="ui fixed large top inverted menu grey">
-    <div class="ui container">
-        <a href="/" class="item">电影船</a>
-        {% if user.is_authenticated %}
-            <div class="ui simple dropdown item right">
-                <span><i class="user icon"></i></span>
-                {{ user.username }} <i class="dropdown icon"></i>
-                <div class="menu">
-                    <a class="item" href="/user/profile">个人信息</a>
-                    <a class="item" href="/user/consume_history">历史记录</a>
-                    <div class="divider"></div>
-                    <a class="item" href="/user/charge">充值</a>
-                    <a class="item" href="/logout">退出</a>
-                </div>
+<body class="bg-body-tertiary">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm sticky-top">
+    <div class="container">
+        <a class="navbar-brand fw-semibold" href="/">电影船 MovieBoat</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="topNav">
+            <div class="ms-auto d-flex gap-2 align-items-center">
+                {% if user.is_authenticated %}
+                    <div class="dropdown">
+                        <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i> {{ user.username }}
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/user/profile">个人信息</a></li>
+                            <li><a class="dropdown-item" href="/user/consume_history">历史记录</a></li>
+                            <li><a class="dropdown-item" href="/user/charge">充值</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/logout">退出</a></li>
+                        </ul>
+                    </div>
+                {% else %}
+                    <button class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#loginModal">登录</button>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#registerModal">注册</button>
+                {% endif %}
             </div>
-
-        {% else %}
-            <div class="item right">
-                <div class="ui buttons">
-                    <button class="ui primary button" id="login">
-                        <span><i class="user icon"></i></span>
-                        登录
-                    </button>
-                    <div class="or" data-text="或"></div>
-                    <button class="ui button" id="register">
-                        <span><i class="pencil icon"></i></span>
-                        注册
-                    </button>
-                </div>
-            </div>
-        {% endif %}
+        </div>
     </div>
-</div>
+</nav>
 
-<br> <br> <br> <br> <br>
+<main class="container py-4">
+    {% block content %}{% endblock %}
+</main>
 
-
-<div id="login_modal" class="ui modal grid four myColumn">
-    <div class="ui middle aligned center aligned grid">
-        <div class="column">
-            <h2 class="ui teal image header">
-                <img src="../static/favicon.ico" class="image">
-                <div class="content">
-                    登录
-                </div>
-            </h2>
-            <form id="login_form" class="ui large form" onsubmit="return false">
-                <div class="ui stacked segment">
-                    <div class="field">
-                        <div class="ui left icon input">
-                            <i class="user icon"></i>
-                            <input id="phone" type="text" name="phone" placeholder="手机号码">
-                        </div>
+<div class="modal fade" id="loginModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">登录账号</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="loginForm">
+                <div class="modal-body">
+                    <div id="loginAlert" class="alert alert-danger d-none mb-3" role="alert"></div>
+                    <div class="mb-3">
+                        <label for="loginPhone" class="form-label">手机号</label>
+                        <input id="loginPhone" name="phone" type="text" class="form-control" placeholder="请输入手机号码" required>
                     </div>
-                    <div class="field">
-                        <div class="ui left icon input">
-                            <i class="lock icon"></i>
-                            <input id="password" type="password" name="password" placeholder="密码">
-                        </div>
+                    <div class="mb-3">
+                        <label for="loginPassword" class="form-label">密码</label>
+                        <input id="loginPassword" name="password" type="password" class="form-control" required>
                     </div>
-                    <div id="login_button" class="ui fluid large teal submit button">登陆</div>
                 </div>
-
-                <div class="ui error message">
-                    <ul class="list">
-                        <li>ERR</li>
-                    </ul>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">登录</button>
                 </div>
-
             </form>
-
         </div>
     </div>
 </div>
 
-<div id="register_modal" class="ui modal grid four myColumn">
-    <div class="ui middle aligned center aligned grid">
-        <div class="column">
-            <h2 class="ui teal image header">
-                <img src="../static/favicon.ico" class="image">
-                <div class="content">
-                    注册
+<div class="modal fade" id="registerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">注册账号</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="registerForm">
+                <div class="modal-body">
+                    <div id="registerAlert" class="alert alert-danger d-none mb-3" role="alert"></div>
+                    <div class="mb-3">
+                        <label for="registerUsername" class="form-label">用户名</label>
+                        <input id="registerUsername" name="username" type="text" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="registerPhone" class="form-label">手机号</label>
+                        <input id="registerPhone" name="phone" type="text" class="form-control" placeholder="请输入手机号码" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="registerPassword" class="form-label">密码</label>
+                        <input id="registerPassword" name="password" type="password" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="registerPasswordRepeat" class="form-label">重复密码</label>
+                        <input id="registerPasswordRepeat" name="password_repeat" type="password" class="form-control" required>
+                    </div>
                 </div>
-            </h2>
-            <form id="register_form" class="ui large form" onsubmit="return false">
-                <div class="ui stacked segment">
-                    <div class="field">
-                        <div class="ui left icon input">
-                            <i class="user icon"></i>
-                            <input id="username" type="text" name="username" placeholder="用户名">
-                        </div>
-                    </div>
-                    <div class="field">
-                        <div class="ui left icon input">
-                            <i class="user icon"></i>
-                            <input id="phone" type="text" name="phone" placeholder="手机号码">
-                        </div>
-                    </div>
-                    <div class="field">
-                        <div class="ui left icon input">
-                            <i class="lock icon"></i>
-                            <input id="password" type="password" name="password" placeholder="密码">
-                        </div>
-                    </div>
-                    <div class="field">
-                        <div class="ui left icon input">
-                            <i class="lock icon"></i>
-                            <input id="password_repeat" type="password" name="password_repeat" placeholder="重复密码">
-                        </div>
-                    </div>
-                    <div id="register_button" class="ui fluid large teal submit button">注册</div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">注册</button>
                 </div>
-
-                <div class="ui error message">
-                    <ul class="list">
-                        <li>ERR</li>
-                    </ul>
-                </div>
-
             </form>
-
         </div>
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
 <script>
-    $('#login').click(
-        function () {
-            $('#login_modal').modal('show');
+    (function () {
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const loginAlert = document.getElementById('loginAlert');
+        const registerAlert = document.getElementById('registerAlert');
+        const phoneRegex = /^1[3-9][0-9]{9}$/;
+
+        function showAlert(el, message) {
+            el.textContent = message;
+            el.classList.remove('d-none');
         }
-    )
 
-    $('#register').click(
-        function () {
-            $('#register_modal').modal('show');
+        function hideAlert(el) {
+            el.textContent = '';
+            el.classList.add('d-none');
         }
-    )
 
-    $('#login_form')
-        .form({
-            fields: {
-                phone: {
-                    identifier: 'phone',
-                    rules: [
-                        {
-                            type: 'empty',
-                            prompt: '请输入手机号码'
-                        },
-                        {
-                            type: 'regExp',
-                            value: '^1[3|4|5|7|8][0-9]{9}$',
-                            prompt: '请输入正确的手机号码'
-                        }
-                    ]
-                },
-                password: {
-                    identifier: 'password',
-                    rules: [
-                        {
-                            type: 'empty',
-                            prompt: '请输入密码'
-                        }
-                    ]
+        async function postForm(url, data) {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'},
+                body: new URLSearchParams(data),
+            });
+            return response.json();
+        }
+
+        if (loginForm) {
+            loginForm.addEventListener('submit', async function (event) {
+                event.preventDefault();
+                hideAlert(loginAlert);
+                const phone = loginForm.phone.value.trim();
+                const password = loginForm.password.value;
+                if (!phoneRegex.test(phone)) {
+                    showAlert(loginAlert, '请输入正确的手机号码');
+                    return;
                 }
-            },
-            onSuccess: function () {
-
-                function getFieldValue(fieldId) {
-                    return $('#login_form').form('get field', fieldId).val();
+                if (!password) {
+                    showAlert(loginAlert, '请输入密码');
+                    return;
                 }
-
-                function onFormSubmitted(response) {
-
-                    switch (response['code']) {
-                        case 100:
-                            window.location.href = '/'
-                            break
-                        case 101:
-                        case 102:
-                            $('li').text(
-                                response['message']
-                            )
-                            $('.error.message').show()
-                            break
-
-                    }
+                const result = await postForm('/login', {phone, password});
+                if (result.code === 100) {
+                    window.location.href = '/';
+                    return;
                 }
+                showAlert(loginAlert, result.message || '登录失败');
+            });
+        }
 
-                var formData = {
-                    phone: getFieldValue('phone'),
-                    password: getFieldValue('password'),
-                };
-                $.ajax({
-                        type: 'POST',
-                        url: '/login',
-                        data: formData,
-                        success: onFormSubmitted,
-                    }
-                );
+        if (registerForm) {
+            registerForm.addEventListener('submit', async function (event) {
+                event.preventDefault();
+                hideAlert(registerAlert);
+                const username = registerForm.username.value.trim();
+                const phone = registerForm.phone.value.trim();
+                const password = registerForm.password.value;
+                const repeated = registerForm.password_repeat.value;
 
-            }
-        })
-    ;
-
-    $('#register_form')
-        .form({
-            fields: {
-                phone: {
-                    identifier: 'phone',
-                    rules: [
-                        {
-                            type: 'empty',
-                            prompt: '请输入手机号码'
-                        },
-                        {
-                            type: 'regExp',
-                            value: '^1[3|4|5|7|8][0-9]{9}$',
-                            prompt: '请输入正确的手机号码'
-                        }
-                    ]
-                },
-                username: {
-                    identifier: 'username',
-                    rules: [
-                        {
-                            type: 'empty',
-                            prompt: '请输入用户名'
-                        },
-                    ]
-                },
-                password: {
-                    identifier: 'password',
-                    rules: [
-                        {
-                            type: 'empty',
-                            prompt: '请输入密码'
-                        },
-                        {
-                            type: 'length[6]',
-                            prompt: '密码长度必须大于6位数'
-                        }
-                    ]
-                },
-                password_repeat: {
-                    identifier: 'password_repeat',
-                    rules: [
-                        {
-                            type: 'empty',
-                            prompt: '请再次输入密码'
-                        },
-                    ]
+                if (!username) {
+                    showAlert(registerAlert, '请输入用户名');
+                    return;
                 }
-            },
-            onSuccess: function () {
-
-                function getFieldValue(fieldId) {
-                    return $('#register_form').form('get field', fieldId).val();
+                if (!phoneRegex.test(phone)) {
+                    showAlert(registerAlert, '请输入正确的手机号码');
+                    return;
+                }
+                if (password.length < 6) {
+                    showAlert(registerAlert, '密码长度必须至少 6 位');
+                    return;
+                }
+                if (password !== repeated) {
+                    showAlert(registerAlert, '两次输入密码不一致');
+                    return;
                 }
 
-                function onFormSubmitted(response) {
-
-                    switch (response['code']) {
-                        case 200:
-                            window.location.href = '/'
-                            break
-                        case 201:
-                        case 202:
-                            $('li').text(
-                                response['message']
-                            )
-                            $('.error.message').show()
-                            break
-
-                    }
+                const result = await postForm('/register', {username, phone, password});
+                if (result.code === 200) {
+                    window.location.href = '/';
+                    return;
                 }
-
-                var formData = {
-                    username: getFieldValue('username'),
-                    phone: getFieldValue('phone'),
-                    password: getFieldValue('password'),
-                };
-                $.ajax({
-                        type: 'POST',
-                        url: '/register',
-                        data: formData,
-                        success: onFormSubmitted,
-                    }
-                );
-
-            }
-        })
-    ;
-
+                showAlert(registerAlert, result.message || '注册失败');
+            });
+        }
+    }());
 </script>
-
-
-
-{% block content %}
-{% endblock %}
-
+{% block extra_scripts %}{% endblock %}
 </body>
 </html>

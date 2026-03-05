@@ -1,0 +1,44 @@
+:root {
+    --movieboat-primary: #0d6efd;
+}
+
+body {
+    min-height: 100vh;
+}
+
+.page-card {
+    border: 0;
+    box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.08);
+    border-radius: 0.75rem;
+}
+
+.movie-cover {
+    width: 100%;
+    height: 18rem;
+    object-fit: cover;
+}
+
+.avatar-sm {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.avatar-md {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.summary-text {
+    white-space: pre-wrap;
+    line-height: 1.65;
+}
+
+.sidebar-link.active {
+    background: var(--movieboat-primary);
+    color: #fff;
+    border-color: var(--movieboat-primary);
+}

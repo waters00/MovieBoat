@@ -1,87 +1,35 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ user.username }}--用户中心{% endblock %}
-
-{% block scripts %}
-    {{ super() }}
-    {{ moment.include_moment() }}
-    {{ moment.lang('zh_CN') }}
-{% endblock %}
+{% block title %}{{ user.username }} - 用户中心{% endblock %}
 
 {% block content %}
-
-
-
-    <!--the main content begin-->
-    <div class="container">
-        <!--the content-->
-        <div class="ui grid">
-            <div class="two wide column"></div>
-            <!--the vertical menu-->
-            <div class="four wide column">
-                <div class="verticalMenu">
-                    <div class="ui vertical pointing menu fluid">
-                        <a class="item" href="/user/profile">
-                            <i class="edit icon"></i>账户设置
-                        </a>
-                        <a class="item" href="/user/consume_history">
-                            <i class="history icon"></i>消费历史
-                        </a>
-                        <a class="item" href="/user/change_password">
-                            <i class="lock icon"></i> 修改密码
-                        </a>
-                        <a class="item" href="/user/charge">
-                            <i class="yen icon"></i>充值
-                        </a>
-                        <a class="active teal item" href="/user/message">
-                            <i class="chat icon"></i> 消息
-                        </a>
-                    </div>
-                </div>
-            </div>
-            <div class="twelve wide column">
-                <div class="pageHeader">
-                    <div class="segment">
-                        <h3 class="ui dividing header">
-                            <i class="large chat icon"></i>
-                            <div class="content">
-                                我的消息
-                                <div class="sub header">我的系统消息以及评论</div>
-                            </div>
-                        </h3>
-                    </div>
-                </div>
-                <div class="ui vertical feed segment">
-
+    <section class="row g-4">
+        <div class="col-lg-3">
+            {% set active_page = 'message' %}
+            {% include '_user_sidebar.html' %}
+        </div>
+        <div class="col-lg-9">
+            <div class="card page-card p-4">
+                <h3 class="h5 mb-3">我的消息</h3>
+                {% if messages %}
                     {% for m in messages %}
-                        <div class="event">
-                            <div class="label">
-                                <img src="{{ m.user.avatar }}">
-                            </div>
-                            <div class="content">
-                                <div class="date">
-                                    <span class="date">{{ m.reply_time.strftime("%Y-%m-%d") }}</span>
-                                    <span class="date" style="color: darkred">{{ moment(m.reply_time).fromNow() }}</span>
-                                </div>
-                                <div class="summary">
-                                    用户 <span style="color: #FF2733">{{ m.user.username }}</span> 回复了你的回复 ：
-                                </div>
-                                <div class="extra text">
-                                    <h1> {{ m.content }} </h1>
-                                </div>
+                        <div class="d-flex gap-3 py-3 border-bottom">
+                            <img
+                                src="{{ m.user.avatar }}"
+                                data-fallback="{{ url_for('static', filename='img/avatar_placeholder.svg') }}"
+                                class="avatar-md"
+                                alt="{{ m.user.username }}">
+                            <div>
+                                <div class="small text-secondary">{{ m.reply_time.strftime("%Y-%m-%d %H:%M") }}</div>
+                                <div>用户 <span class="fw-semibold text-danger">{{ m.user.username }}</span> 回复了你的评论：</div>
+                                <div class="mt-1">{{ m.content }}</div>
                             </div>
                         </div>
                     {% endfor %}
-
-                </div>
+                {% else %}
+                    <p class="text-secondary mb-0">暂无消息。</p>
+                {% endif %}
             </div>
         </div>
-    </div>
-
-    <script>
-        $('.ui.dropdown')
-            .dropdown();
-    </script>
-
-
+    </section>
 {% endblock %}

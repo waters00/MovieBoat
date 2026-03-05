@@ -2,273 +2,163 @@
 
 {% block title %}{{ movie.title }}{% endblock %}
 
-{% block scripts %}
-    {{ super() }}
-    {{ moment.include_moment() }}
-    {{ moment.lang('zh_CN') }}
+{% block content %}
+    <section class="row g-4 mb-4">
+        <div class="col-lg-4">
+            <div class="card page-card">
+                <img
+                    src="{{ movie.cover }}"
+                    data-fallback="{{ url_for('static', filename='img/movie_placeholder.svg') }}"
+                    class="card-img-top movie-cover"
+                    alt="{{ movie.title }}">
+                <div class="card-body">
+                    <h4 class="card-title">{{ movie.title }}</h4>
+                    <p class="text-secondary">{{ movie.info.split('\n')[0] if movie.info else '' }}</p>
+                    <p class="fs-5">价格：<span class="text-danger fw-bold">￥{{ movie.movie_price.first().price }}</span></p>
+                    {% if not user.is_authenticated %}
+                        <button class="btn btn-secondary w-100" disabled>登录后才能观看或购买</button>
+                    {% elif can_watched %}
+                        <a href="/watch/{{ movie.brief_id }}" class="btn btn-primary w-100">观看视频</a>
+                    {% else %}
+                        <button
+                            class="btn btn-outline-danger w-100"
+                            id="detailPurchase"
+                            data-id="consume_{{ movie.brief_id }}"
+                            data-title="{{ movie.title }}"
+                            data-cover="{{ movie.cover }}"
+                            data-price="{{ movie.movie_price.first().price }}"
+                            data-info="{{ movie.info }}">
+                            点击购买
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
 
+        <div class="col-lg-8">
+            <article class="card page-card p-4">
+                <h3 class="mb-3">{{ movie.title }}</h3>
+                <div class="summary-text text-secondary">{{ movie.summary }}</div>
+            </article>
+        </div>
+    </section>
+
+    <section class="card page-card p-4">
+        <h4 class="mb-3">用户评论</h4>
+        {% for comment in comments %}
+            <div class="d-flex gap-3 mb-3">
+                <img
+                    src="{{ comment.user.avatar }}"
+                    data-fallback="{{ url_for('static', filename='img/avatar_placeholder.svg') }}"
+                    class="avatar-md"
+                    alt="{{ comment.user.username }}">
+                <div class="flex-grow-1">
+                    <div class="fw-semibold">{{ comment.user.username }}</div>
+                    <div class="small text-secondary">{{ comment.comment_time.strftime("%Y-%m-%d %H:%M") }}</div>
+                    <div class="mt-1">{{ comment.content }}</div>
+                </div>
+            </div>
+            {% for reply in comment.replies.all() %}
+                <div class="d-flex gap-3 ms-5 mb-2">
+                    <img
+                        src="{{ reply.user.avatar }}"
+                        data-fallback="{{ url_for('static', filename='img/avatar_placeholder.svg') }}"
+                        class="avatar-sm"
+                        alt="{{ reply.user.username }}">
+                    <div>
+                        <div class="small"><span class="fw-semibold">{{ reply.user.username }}</span> 回复：{{ reply.content }}</div>
+                    </div>
+                </div>
+            {% endfor %}
+            <hr>
+        {% endfor %}
+
+        <form action="{{ request.path }}" method="POST">
+            <div class="mb-3">
+                <label for="commentText" class="form-label">发表评论</label>
+                <textarea id="commentText" class="form-control" name="comment" rows="3"></textarea>
+            </div>
+            {% if not user.is_authenticated %}
+                <button class="btn btn-secondary" disabled>登录后才能评论</button>
+            {% else %}
+                <button class="btn btn-primary" type="submit">添加评论</button>
+            {% endif %}
+        </form>
+    </section>
+
+    <div class="modal fade" id="consumeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">确认购买</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="consumeAlert" class="alert alert-danger d-none"></div>
+                    <div class="row g-3">
+                        <div class="col-md-5">
+                            <img id="consumeImg" class="img-fluid rounded"
+                                 data-fallback="{{ url_for('static', filename='img/movie_placeholder.svg') }}"
+                                 src="{{ url_for('static', filename='img/movie_placeholder.svg') }}"
+                                 alt="movie cover">
+                        </div>
+                        <div class="col-md-7">
+                            <h4 id="consumeTitle"></h4>
+                            <p id="consumeInfo" class="text-secondary mb-2"></p>
+                            <p class="mb-0">应付金额：<span id="consumePrice" class="text-danger fw-bold"></span></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="confirmConsume" type="button" class="btn btn-danger">确认购买</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
 {% endblock %}
 
-{% block content %}
-
-    <style>
-        .boxed {
-            position: relative;
-            overflow: hidden;
-            padding: 1.85714286em;
-            margin-bottom: 30px;
-        }
-
-        .boxed:not([class*='bg-']) {
-            background: #ffffff;
-        }
-
-        body {
-            font-size: 1em;
-            line-height: 1.85714286em;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            font-family: 'Open Sans', 'Helvetica', 'Arial', sans-serif;
-            color: #666666;
-            font-weight: 400;
-        }
-    </style>
-
-
-    <div class="ui grid">
-        <div class="ui row">
-            <dvi class="three wide column"></dvi>
-            <div class="three wide column">
-                <div class="" style="position: absolute; left: 0px; top: 0px;">
-                    <div class="hover-shadow">
-                        <img alt="{{ movie.title }}"
-                             src="{{ movie.cover }}">
-                    </div>
-                    {% if not user.is_authenticated %}
-                        <button class="ui blue labeled disabled submit icon negative button">
-                            <i class="video play icon"></i>登陆后才能观看或购买
-                        </button>
-                    {% else %}
-                        {% if can_watched %}
-                            <button id="watch" class="ui blue button large">
-                                <i class="video play icon"></i>
-                                观看视频
-                            </button>
-                        {% else %}
-                            <button id="consume_{{ movie.brief_id }}" class="ui button negative large">
-                                <i class="video play icon"></i>
-                                点击购买
-                            </button>
-                        {% endif %}
-                    {% endif %}
-                    <div id="info_{{ movie.brief_id }}" class="item info" hidden>
-                        <span style="font-size: 2em;font-weight: 700;color:#be997f;display: block;margin-bottom: .5em">{{ movie.title }}</span>
-
-                        {% for item in movie.info.split('\n')[0:-2] %}
-                            <span class="tiny-title">{{ item }}</span>
-                        {% endfor %}
-                        <div class="ui horizontal divider">
-                        </div>
-                        <div class="extra content">
-                                    <span style="font-size: 3em">
-
-                                    ￥
-                                    </span>
-
-                            <span style="color: red;font-size: 7em;">
-                                        {{ movie.movie_price.first().price }}
-                                </span>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-            <div class="two wide column"></div>
-            <div class="six wide column">
-                <div class="boxed">
-                    <span style="font-size: 2em;font-weight: 700;color:#be997f;display: block;margin-bottom: .5em">{{ movie.title }}</span>
-                    <div class="tinfo">
-                        {% for item in movie.info.split('\n')[0:-2] %}
-                            {% if not item.startswith('豆瓣') %}
-                                <p class="tiny-title">{{ item }}</p>
-                            {% endif %}
-                        {% endfor %}
-                    </div>
-                    <hr>
-                    <span
-                            style="font-size: 2em;font-weight: 700;color:#fc9b35;">
-                            {% for item in movie.info.split('\n')[0:-2] %}
-                                {% if item.startswith('豆瓣') %}
-                                    {{ item }}
-                                {% endif %}
-                            {% endfor %}
-
-                        </span>
-                    <article class="information-text">
-                        {{ movie.summary }}
-                    </article>
-                </div>
-
-            </div>
-        </div>
-        <div class="four wide column"></div>
-        <div class="ui row">
-            <div class="four wide column"></div>
-            <div class="ui comments">
-                <h3 class="ui dividing header">用户评论</h3>
-                {% for comment in comments %}
-                    <div class="comment">
-                        <div class="avatar">
-                            <img class="ui medium circular image" src="{{ comment.user.avatar }}">
-                        </div>
-                        <div class="content">
-                            <a class="author">{{ comment.user.username }}</a>
-                            <div class="metadata">
-                                <span class="date">{{ comment.comment_time.strftime("%Y-%m-%d") }}</span>
-                                <span class="date">{{ moment(comment.comment_time).fromNow() }}</span>
-                            </div>
-                            <div class="text" style="font-size: 1.2em">{{ comment.content }}</div>
-                            <div class="reply" id="{{ comment.id }}"> 回复</div>
-                        </div>
-                    </div>
-
-                    {% if comment.replies.all() %}
-                        <div class="comments" style="margin-left: 20px">
-                            {% for reply in comment.replies.all() %}
-                                <div class="comment">
-                                    <a class="avatar">
-                                        <img class="ui medium circular image" src="{{ reply.user.avatar }}">
-                                    </a>
-                                    <div class="content">
-                                        <a class="author">{{ reply.user.username }}</a>
-                                        <div class="metadata">
-                                            <span class="date">{{ comment.comment_time.strftime("%Y-%m-%d") }}</span>
-                                            <span class="date">{{ moment(comment.comment_time).fromNow() }}</span>
-                                        </div>
-                                        <div class="text" style="font-size: 1.2em">{{ reply.content }}</div>
-                                    </div>
-                                </div>
-
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-
-                {% endfor %}
-                <form class="ui reply form" action="{{ request.path }}" method="POST">
-                    <div class="field">
-                <textarea name="comment" rows="3" cols="20">
-                </textarea>
-                    </div>
-                    {% if not user.is_authenticated %}
-                        <button class="ui blue labeled disabled submit icon button"><i class="icon edit"></i>登陆后才能评论
-                        </button>
-                    {% else %}
-                        <button id="comment" class="ui blue labeled submit icon button"><i class="icon edit"></i>添加评论
-                        </button>
-                    {% endif %}
-                </form>
-            </div>
-
-        </div>
-    </div>
-
-
-    <div id="consume_modal" class="ui modal" style="width: 700px">
-        <i class="close icon"></i>
-        <div class="header">
-            确认购买
-        </div>
-        <div class="content" style="margin-bottom: 50px">
-            <div class="container">
-                <div class="ui grid">
-                    <div class="two column row">
-                        <div class="column">
-                            <img id="consume_img" src="">
-                        </div>
-                        <div id="consume_content" class="column">
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="ui container right aligned">
-            <div id="confirm_consume" class="ui negative right button" onsubmit="return false;">确认购买</div>
-            <div id="cancel_consume" class="ui button">取消</div>
-        </div>
-
-
-        <div class="ui error message" hidden>
-            <ul class="list">
-                <li></li>
-            </ul>
-        </div>
-    </div>
-
-
+{% block extra_scripts %}
     <script>
-        $('#watch').click(
-            function () {
-                window.location = '/watch/{{ movie.brief_id }}'
+        (function () {
+            const purchaseBtn = document.getElementById('detailPurchase');
+            if (!purchaseBtn) {
+                return;
             }
-        );
+            const consumeModal = new bootstrap.Modal(document.getElementById('consumeModal'));
+            const consumeAlert = document.getElementById('consumeAlert');
+            const consumeImg = document.getElementById('consumeImg');
+            const consumeTitle = document.getElementById('consumeTitle');
+            const consumeInfo = document.getElementById('consumeInfo');
+            const consumePrice = document.getElementById('consumePrice');
+            const confirmConsume = document.getElementById('confirmConsume');
+            let movieBriefId = '';
 
-        var movie_brief_id = $(this).attr("id");
-        $('.button.negative.large').click(
-            function () {
-                $('#consume_modal').modal('show');
-                $('.error.message').hide()
-                movie_brief_id = $(this).attr("id");
+            purchaseBtn.addEventListener('click', function () {
+                movieBriefId = this.dataset.id;
+                consumeAlert.classList.add('d-none');
+                consumeAlert.textContent = '';
+                consumeTitle.textContent = this.dataset.title || '';
+                consumeInfo.textContent = (this.dataset.info || '').split('\n').slice(0, 2).join(' / ');
+                consumePrice.textContent = `￥${this.dataset.price}`;
+                consumeImg.src = this.dataset.cover || consumeImg.dataset.fallback;
+                consumeModal.show();
+            });
 
-                var item_src = $(this).parent()[0].getElementsByTagName('img')[0].src;
-                var item_info = $(this).parent()[0].getElementsByClassName('item info')[0];
-
-
-                $('#consume_img').attr('src', item_src);
-                $('#consume_content').html(item_info.innerHTML);
-                $('#consume_modal').modal('show');
-            }
-        )
-
-        $('#confirm_consume').click(
-            function () {
-
-                function deal_response(response) {
-                    switch (response['code']) {
-                        case 300:
-                            $('#consume_modal').modal('hide')
-
-                        case 301:
-                            $('li').text(
-                                response['message']
-                            )
-                            $('.error.message').show()
-                            break
-                        case 302:
-                            $('li').text(
-                                response['message']
-                            )
-                            $('.error.message').show()
-                            break
-                    }
+            confirmConsume.addEventListener('click', async function () {
+                const response = await fetch('/consume', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'},
+                    body: new URLSearchParams({movie_brief_id: movieBriefId}),
+                });
+                const result = await response.json();
+                if (result.code === 300) {
+                    window.location = `/watch/${movieBriefId.split('_')[1]}`;
+                    return;
                 }
-
-                $.ajax({
-                        type: 'POST',
-                        url: '/consume',
-                        data: {movie_brief_id: movie_brief_id},
-                        success: deal_response,
-                    }
-                )
-            }
-        )
-
-        $('#cancel_consume').click(
-            function () {
-                $('#consume_modal').modal('hide')
-            }
-        )
+                consumeAlert.textContent = result.message || '购买失败';
+                consumeAlert.classList.remove('d-none');
+            });
+        }());
     </script>
-
-
 {% endblock %}

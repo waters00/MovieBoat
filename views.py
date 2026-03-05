@@ -1,6 +1,6 @@
 import datetime
 
-from flask import render_template, request, redirect, url_for, session, jsonify, abort
+from flask import render_template, request, redirect, url_for, jsonify, abort
 from flask_login import current_user, login_user, logout_user, LoginManager, login_required
 
 from models import db
@@ -67,7 +67,6 @@ def index():
 @app.route('/logout')
 @login_required
 def logout():
-    user = User.query.get(session.get('user_id'))
     logout_user()
     return redirect(url_for('.index'))
 
@@ -186,10 +185,10 @@ def consume():
     return jsonify(ret)
 
 
-@login_required
 @app.route('/user/message', methods=['GET'])
+@login_required
 def message():
-    u = User.query.get(current_user.get_id())
+    u = db.session.get(User, current_user.get_id())
     messages = []
     print(u.u_comments.all())
 
@@ -201,10 +200,11 @@ def message():
 
 
 @app.route('/user/charge', methods=['GET', 'POST'])
+@login_required
 def charge():
     if request.method == 'POST':
         charge_amount = int(request.form.get('charge_amount'))
-        u = User.query.get(current_user.get_id())
+        u = db.session.get(User, current_user.get_id())
         u.balance += charge_amount
 
         cr = ChargeRecord(
@@ -256,8 +256,8 @@ def register():
     return jsonify(ret)
 
 
-@login_required
 @app.route('/user/consume_history', methods=['GET'])
+@login_required
 def custom_records():
     page = int(request.args.get('page', 1))
     PER_PAGE = 3
@@ -280,15 +280,15 @@ def custom_records():
     )
 
 
-@login_required
 @app.route('/user/profile', methods=['GET', 'POST'])
+@login_required
 def profile():
     if request.method == 'POST':
         new_username = request.form.get('username')
         new_phone_number = request.form.get('phone_number')
         print(new_username, new_phone_number)
 
-        u = User.query.get(current_user.get_id())
+        u = db.session.get(User, current_user.get_id())
         u.username = new_username
         u.phone_number = new_phone_number
         db.session.add(u)
@@ -297,15 +297,15 @@ def profile():
     return render_template('profile.html', user=current_user)
 
 
-@login_required
 @app.route('/user/change_password', methods=['GET', 'POST'])
+@login_required
 def change_password():
     if request.method == 'POST':
         new_password = request.form.get('password')
         password_repeated = request.form.get('password_repeated')
 
         if new_password == password_repeated:
-            u = User.query.get(current_user.get_id())
+            u = db.session.get(User, current_user.get_id())
             print(u.password)
             u.password = new_password
             print(u.password)

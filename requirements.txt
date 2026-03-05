@@ -10,6 +10,7 @@ Babel==2.18.0
 passlib==1.7.4
 Faker==40.8.0
 pymongo==4.16.0
+pytest==9.0.2
 
 
 

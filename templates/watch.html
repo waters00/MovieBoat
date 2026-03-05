@@ -3,17 +3,13 @@
 {% block title %}{{ movie.title }}{% endblock %}
 
 {% block content %}
-
-    <div class="ui container center aligned">
-        <div class="ui embed" data-url="{{ movie.video_uri }}" {#             data-placeholder="{{ movie.cover }}"#}>
+    <section class="card page-card p-3 p-md-4">
+        <h2 class="h4 mb-3">{{ movie.title }}</h2>
+        <div class="ratio ratio-16x9 rounded overflow-hidden bg-dark">
+            <video controls poster="{{ movie.cover }}" data-fallback="{{ url_for('static', filename='img/movie_placeholder.svg') }}">
+                <source src="{{ movie.video_uri }}">
+                当前浏览器无法播放该视频，请<a href="{{ movie.video_uri }}" target="_blank" rel="noopener">点击这里</a>打开原始地址。
+            </video>
         </div>
-    </div>
-
-
-    <script>
-        $('.ui.embed').embed();
-    </script>
-
-
-
+    </section>
 {% endblock %}
