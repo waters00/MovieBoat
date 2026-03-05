@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import jinja2
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
+from markupsafe import Markup
 
 from app import app
 
@@ -28,7 +28,7 @@ class UserView(ModelView):
 
     def _avatar(view, context, model, name):
         if model.avatar:
-            return jinja2.Markup('<img src="{}">'.format(model.avatar))
+            return Markup('<img src="{}">'.format(model.avatar))
 
     column_formatters = dict(
         avatar=_avatar,
@@ -92,11 +92,11 @@ class MovieView(ModelView):
 
     def _cover(view, context, model, name):
         if model.cover:
-            return jinja2.Markup('<img src="{}">'.format(model.cover))
+            return Markup('<img src="{}">'.format(model.cover))
 
     def _video_uri(view, context, model, name):
         if model.video_uri:
-            return jinja2.Markup('<a hre="{}">'.format(model.video_uri))
+            return Markup('<a hre="{}">'.format(model.video_uri))
 
     def _info(view, context, model, name):
         if model.info:

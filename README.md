@@ -1,10 +1,10 @@
-#MovieBoat
+# MovieBoat
 
-python 版本 `3.6`
+python 版本 `3.12+`
 
 ```shell
-pip3 install -r requirement.txt
-Python3 main.py
+pip3 install -r requirements.txt
+python3 main.py
 ```
 
 打开`http://localhost:8080` 即可查看网站

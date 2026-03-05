@@ -15,7 +15,7 @@ def init_login():
 
     @login_manager.user_loader
     def load_user(user_id):
-        return db.session.query(User).get(user_id)
+        return db.session.get(User, user_id)
 
 
 @app.route('/', methods=['GET'])
