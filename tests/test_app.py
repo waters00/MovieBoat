@@ -65,7 +65,7 @@ def test_home_page_uses_modern_assets_and_image_fallback(client):
 
 
 def test_register_and_login(client):
-    unique = str(int(time.time() * 1000))[-9:]
+    unique = str(int(time.time() * 1000))[-8:]
     phone = f"138{unique}"
 
     register_resp = client.post(
@@ -81,6 +81,63 @@ def test_register_and_login(client):
     assert register_resp.get_json()["code"] == 200
     assert login_resp.status_code == 200
     assert login_resp.get_json()["code"] == 100
+
+
+def test_login_validation_and_wrong_password(client):
+    with app.app_context():
+        _create_user(phone="13800000009", username="login_user", balance=0.0)
+
+    missing_resp = client.post("/login", data={"phone": "", "password": ""})
+    assert missing_resp.status_code == 200
+    assert missing_resp.get_json()["code"] == 103
+
+    invalid_phone_resp = client.post("/login", data={"phone": "123456", "password": "pass123"})
+    assert invalid_phone_resp.status_code == 200
+    assert invalid_phone_resp.get_json()["code"] == 104
+
+    wrong_password_resp = client.post("/login", data={"phone": "13800000009", "password": "wrong-pass"})
+    assert wrong_password_resp.status_code == 200
+    assert wrong_password_resp.get_json()["code"] == 102
+
+
+def test_register_validation_and_duplicate(client):
+    with app.app_context():
+        _create_user(phone="13800000008", username="registered_name", balance=0.0)
+
+    empty_name_resp = client.post(
+        "/register",
+        data={"username": "", "phone": "13800000010", "password": "pass123"},
+    )
+    assert empty_name_resp.status_code == 200
+    assert empty_name_resp.get_json()["code"] == 203
+
+    invalid_phone_resp = client.post(
+        "/register",
+        data={"username": "foo", "phone": "110", "password": "pass123"},
+    )
+    assert invalid_phone_resp.status_code == 200
+    assert invalid_phone_resp.get_json()["code"] == 203
+
+    short_password_resp = client.post(
+        "/register",
+        data={"username": "foo", "phone": "13800000010", "password": "12345"},
+    )
+    assert short_password_resp.status_code == 200
+    assert short_password_resp.get_json()["code"] == 204
+
+    duplicate_phone_resp = client.post(
+        "/register",
+        data={"username": "new_name", "phone": "13800000008", "password": "pass123"},
+    )
+    assert duplicate_phone_resp.status_code == 200
+    assert duplicate_phone_resp.get_json()["code"] == 201
+
+    duplicate_name_resp = client.post(
+        "/register",
+        data={"username": "registered_name", "phone": "13800000011", "password": "pass123"},
+    )
+    assert duplicate_name_resp.status_code == 200
+    assert duplicate_name_resp.get_json()["code"] == 202
 
 
 def test_consume_requires_login_and_balance(client):
@@ -112,3 +169,22 @@ def test_consume_requires_login_and_balance(client):
         assert ConsumeRecord.query.count() == 1
         buyer = User.query.filter_by(phone_number="13800000001").first()
         assert buyer.balance == pytest.approx(15.0)
+
+    duplicate_consume = client.post("/consume", data={"movie_brief_id": "consume_1001"})
+    assert duplicate_consume.status_code == 200
+    assert duplicate_consume.get_json()["code"] == 306
+
+
+def test_consume_parameter_and_not_found_validation(client):
+    with app.app_context():
+        _create_user(phone="13800000021", username="consume_user", balance=30.0)
+
+    client.post("/login", data={"phone": "13800000021", "password": "pass123"})
+
+    bad_param_resp = client.post("/consume", data={"movie_brief_id": ""})
+    assert bad_param_resp.status_code == 200
+    assert bad_param_resp.get_json()["code"] == 303
+
+    not_found_resp = client.post("/consume", data={"movie_brief_id": "consume_9999"})
+    assert not_found_resp.status_code == 200
+    assert not_found_resp.get_json()["code"] == 304

@@ -1,4 +1,5 @@
 import datetime
+import re
 
 from flask import render_template, request, redirect, url_for, jsonify, abort
 from flask_login import current_user, login_user, logout_user, LoginManager, login_required
@@ -7,6 +8,16 @@ from models import db
 from models import Movie, User, ConsumeRecord, ChargeRecord, Comment
 from utils import Pagination
 from app import app
+
+PHONE_RE = re.compile(r"^1[3-9][0-9]{9}$")
+
+
+def _clean(value):
+    return (value or "").strip()
+
+
+def _utcnow_naive():
+    return datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
 
 
 def init_login():
@@ -73,46 +84,49 @@ def logout():
 
 @app.route('/login', methods=['POST'])
 def login():
-    print(request.form)
-    phone = request.form.get('phone')
-    password = request.form.get('password')
+    phone = _clean(request.form.get('phone'))
+    password = _clean(request.form.get('password'))
+
+    if not phone or not password:
+        return jsonify({'code': 103, 'message': '请输入手机号和密码'})
+
+    if not PHONE_RE.match(phone):
+        return jsonify({'code': 104, 'message': '手机号格式不正确'})
 
     user = User.query.filter_by(phone_number=phone).first()
 
-    ret = {}
-
     if not user:
-        ret['code'] = 101
-        ret['message'] = '用户不存在'
-        return jsonify(ret)
+        return jsonify({'code': 101, 'message': '用户不存在'})
 
     if user.validate_password(password):
-        ret['code'] = 100
         login_user(user)
-    else:
-        ret['code'] = 102
-        ret['message'] = '密码错误'
+        return jsonify({'code': 100, 'message': '登录成功'})
 
-    return jsonify(ret)
+    return jsonify({'code': 102, 'message': '密码错误'})
 
 
 @app.route('/movie/<movie_id>', methods=['GET', 'POST'])
 def movie_detail(movie_id):
     movie = Movie.query.filter_by(brief_id=movie_id).first()
-    if request.method == 'POST':
-        print(request.form.get('comment'))
-        comment = request.form.get('comment')
-        u = User.query.filter_by(id=current_user.get_id()).first()
+    if not movie:
+        abort(404)
 
-        c = Comment(
-            user=u,
-            movie=movie,
-            comment_time=datetime.datetime.now(),
-            content=comment,
-            point=5,
-        )
-        db.session.add(c)
-        db.session.commit()
+    if request.method == 'POST':
+        if not current_user.is_authenticated:
+            return redirect(url_for('.movie_detail', movie_id=movie_id))
+
+        comment = _clean(request.form.get('comment'))
+        if comment:
+            u = db.session.get(User, current_user.get_id())
+            c = Comment(
+                user=u,
+                movie=movie,
+                comment_time=datetime.datetime.now(),
+                content=comment,
+                point=5,
+            )
+            db.session.add(c)
+            db.session.commit()
 
     comments = movie.comments.all()
 
@@ -122,9 +136,6 @@ def movie_detail(movie_id):
         bought_moveis = [record.movie for record in consume_records]
         if movie in bought_moveis:
             can_watched = True
-
-    if not movie:
-        abort(404)
 
     return render_template(
         'movie_detail.html',
@@ -145,44 +156,49 @@ def watch(movie_id):
 
 @app.route('/consume', methods=['POST'])
 def consume():
-    print(request.form)
-    movie_brief_id = request.form.get('movie_brief_id')
+    if not current_user.is_authenticated:
+        return jsonify({'code': 301, 'message': '请先登录'})
+
+    movie_brief_id = _clean(request.form.get('movie_brief_id'))
+    if not movie_brief_id:
+        return jsonify({'code': 303, 'message': '请求参数错误'})
+
     movie_brief_id = movie_brief_id.split('_')[-1]
-    movie = Movie.query.filter_by(brief_id=movie_brief_id).first()
-    print(movie)
+    if not movie_brief_id.isdigit():
+        return jsonify({'code': 303, 'message': '请求参数错误'})
 
-    ret = {}
+    movie = Movie.query.filter_by(brief_id=int(movie_brief_id)).first()
+    if not movie:
+        return jsonify({'code': 304, 'message': '影片不存在'})
 
-    if not current_user.is_active:
-        ret['code'] = 301
-        ret['message'] = '请先登录'
-        return jsonify(ret)
+    movie_price = movie.movie_price.first()
+    if not movie_price:
+        return jsonify({'code': 305, 'message': '影片价格未配置'})
 
-    money = movie.movie_price.first().price
+    u = db.session.get(User, current_user.get_id())
+    if not u:
+        return jsonify({'code': 301, 'message': '请先登录'})
 
-    u = User.query.filter_by(id=current_user.get_id()).first()
+    consumed = ConsumeRecord.query.filter_by(consumer_id=u.id, movie_id=movie.id).first()
+    if consumed:
+        return jsonify({'code': 306, 'message': '已购买该影片，无需重复购买'})
 
-    if u.balance >= money:
-        u.balance -= money
+    money = float(movie_price.price)
+    if u.balance < money:
+        return jsonify({'code': 302, 'message': '余额不足，请先充值!'})
 
-        cr = ConsumeRecord(
-            consumer=current_user,
-            movie=movie,
-            consume_time=datetime.datetime.utcnow(),
-            money=money,
-        )
+    u.balance -= money
+    cr = ConsumeRecord(
+        consumer=u,
+        movie=movie,
+        consume_time=_utcnow_naive(),
+        money=money,
+    )
 
-        db.session.add(u)
-        db.session.add(cr)
-        db.session.commit()
-        ret['code'] = 300
-        ret['message'] = '购买成功!'
-
-    else:
-        ret['code'] = 302
-        ret['message'] = '余额不足，请先充值!'
-
-    return jsonify(ret)
+    db.session.add(u)
+    db.session.add(cr)
+    db.session.commit()
+    return jsonify({'code': 300, 'message': '购买成功!'})
 
 
 @app.route('/user/message', methods=['GET'])
@@ -203,13 +219,17 @@ def message():
 @login_required
 def charge():
     if request.method == 'POST':
-        charge_amount = int(request.form.get('charge_amount'))
+        charge_amount = _clean(request.form.get('charge_amount'))
+        if not charge_amount.isdigit() or int(charge_amount) <= 0:
+            return render_template('charge.html', user=current_user)
+
+        charge_amount = int(charge_amount)
         u = db.session.get(User, current_user.get_id())
         u.balance += charge_amount
 
         cr = ChargeRecord(
             user=u,
-            charge_time=datetime.datetime.utcnow(),
+            charge_time=_utcnow_naive(),
             money=charge_amount
         )
         db.session.add(cr)
@@ -221,24 +241,26 @@ def charge():
 
 @app.route('/register', methods=['POST'])
 def register():
-    print(request.form)
-    username = request.form.get('username')
-    password = request.form.get('password')
-    phone = request.form.get('phone')
-    print(username, password, phone)
-    ret = {}
+    username = _clean(request.form.get('username'))
+    password = _clean(request.form.get('password'))
+    phone = _clean(request.form.get('phone'))
+
+    if not username:
+        return jsonify({'code': 203, 'message': '用户名不能为空'})
+
+    if not PHONE_RE.match(phone):
+        return jsonify({'code': 203, 'message': '手机号格式不正确'})
+
+    if len(password) < 6:
+        return jsonify({'code': 204, 'message': '密码长度至少为6位'})
 
     user = User.query.filter_by(phone_number=phone).first()
     if user:
-        ret['code'] = 201
-        ret['message'] = '此手机已经被注册'
-        return jsonify(ret)
+        return jsonify({'code': 201, 'message': '此手机已经被注册'})
 
     user = User.query.filter_by(username=username).first()
     if user:
-        ret['code'] = 202
-        ret['message'] = '此用户名已经被注册'
-        return jsonify(ret)
+        return jsonify({'code': 202, 'message': '此用户名已经被注册'})
 
     user = User(
         username=username,
@@ -250,10 +272,7 @@ def register():
 
     login_user(user)
 
-    ret['code'] = 200
-    ret['message'] = '注册成功'
-
-    return jsonify(ret)
+    return jsonify({'code': 200, 'message': '注册成功'})
 
 
 @app.route('/user/consume_history', methods=['GET'])
