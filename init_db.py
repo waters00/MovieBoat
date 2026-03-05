@@ -5,13 +5,13 @@ import random
 import datetime
 import math
 
-from faker import Factory
+from faker import Faker
 import pymongo
 
 from models import User, Movie, Comment, ChargeRecord, ConsumeRecord, MoviePrice, Reply
 from models import db
 
-fake = Factory.create('zh_CN')
+fake = Faker('zh_CN')
 
 
 def get_mongo_cursor():

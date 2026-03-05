@@ -5,10 +5,15 @@
 from datetime import datetime
 from uuid import uuid1
 
-from passlib.apps import custom_app_context as pwd_context
+from passlib.context import CryptContext
 from flask_login import UserMixin
 
 from app import db
+
+pwd_context = CryptContext(
+    schemes=["pbkdf2_sha256", "sha256_crypt", "sha512_crypt"],
+    deprecated="auto",
+)
 
 
 class User(UserMixin, db.Model):
@@ -30,7 +35,7 @@ class User(UserMixin, db.Model):
 
     @password.setter
     def password(self, password):
-        self.password_hash = pwd_context.encrypt(password)
+        self.password_hash = pwd_context.hash(password)
 
     def validate_password(self, password):
         return pwd_context.verify(password, self.password_hash)
